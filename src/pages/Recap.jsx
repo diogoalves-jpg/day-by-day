@@ -115,14 +115,27 @@ export default function Recap() {
   const valA = getVal(compareA, compareBy);
   const valB = getVal(compareB, compareBy);
   const isPercent = compareBy === 'overall';
-  const maxVal = isPercent ? 100 : Math.max(valA,valB,1);
-  const labelA = monthOptions.find(o=>o.value===compareA)?.label?.split(' ')[0]||compareA;
-  const labelB = monthOptions.find(o=>o.value===compareB)?.label?.split(' ')[0]||compareB;
+  const unit = isPercent ? '%' : 'd';
+  const labelA = monthOptions.find(o=>o.value===compareA)?.label || compareA;
+  const labelB = monthOptions.find(o=>o.value===compareB)?.label || compareB;
+  const diff = valA - valB;
+  const improved = diff > 0;
+  const same = diff === 0;
+
+  const getSentence = () => {
+    const metric = COMPARE_OPTIONS.find(o=>o.value===compareBy)?.label || compareBy;
+    if (same) return `No change in ${metric.toLowerCase()} between these months.`;
+    const change = Math.abs(diff);
+    const dir = improved ? 'improved' : 'declined';
+    const changeStr = isPercent ? `${change}%` : `${change} day${change !== 1 ? 's' : ''}`;
+    return `You ${dir} by ${changeStr} from ${labelB.split(' ')[0]} to ${labelA.split(' ')[0]} ${labelA.split(' ')[1]}.`;
+  };
 
   const selectStyle = {
     width: '100%', background: '#F5F0EB', border: `1px solid ${C.border}`,
-    borderRadius: 12, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit',
+    borderRadius: 16, padding: '13px 14px', fontSize: 15, fontFamily: 'inherit',
     outline: 'none', color: C.text, appearance: 'none', WebkitAppearance: 'none',
+    fontWeight: 500,
   };
 
   return (
@@ -167,40 +180,83 @@ export default function Recap() {
       {/* Month comparison */}
       <div>
         <SectionLabel>Month Comparison</SectionLabel>
-        <div style={{ background:C.card, borderRadius:20, boxShadow:C.shadow, border:`1px solid ${C.border}`, padding:'16px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+        <div style={{ background:C.card, borderRadius:20, boxShadow:C.shadow, border:`1px solid ${C.border}`, padding:'20px 18px' }}>
+
+          {/* Selectors */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
             <div>
-              <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Month A</p>
+              <p style={{ fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:1,textTransform:'uppercase' }}>Month A</p>
               <select value={compareA} onChange={e=>setCompareA(e.target.value)} style={selectStyle}>
                 {monthOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Month B</p>
+              <p style={{ fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:1,textTransform:'uppercase' }}>Month B</p>
               <select value={compareB} onChange={e=>setCompareB(e.target.value)} style={selectStyle}>
                 {monthOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
-          <div style={{ marginBottom:16 }}>
-            <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Compare by</p>
+          <div style={{ marginBottom:0 }}>
+            <p style={{ fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:1,textTransform:'uppercase' }}>Compare by</p>
             <select value={compareBy} onChange={e=>setCompareBy(e.target.value)} style={selectStyle}>
               {COMPARE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
-          {/* Bars */}
-          {[{label:labelA,val:valA,color:'#4A7C59'},{label:labelB,val:valB,color:'#A8C840'}].map(({label,val,color})=>(
-            <div key={label} style={{ marginBottom:12 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                <span style={{ fontSize:13,fontWeight:600 }}>{label}</span>
-                <span style={{ fontSize:13,fontWeight:700,color }}>{val}{isPercent?'%':'d'}</span>
-              </div>
-              <div style={{ height:10,background:'#F2EDE8',borderRadius:10,overflow:'hidden' }}>
-                <div style={{ height:'100%',width:`${maxVal?(val/maxVal)*100:0}%`,background:color,borderRadius:10,transition:'width 0.5s ease' }}/>
-              </div>
+          {/* Divider */}
+          <div style={{ height:1, background:'rgba(0,0,0,0.07)', margin:'20px 0' }} />
+
+          {/* Big number comparison */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:12 }}>
+            {/* Month A */}
+            <div style={{ textAlign:'center' }}>
+              <p style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:1,textTransform:'uppercase',marginBottom:8 }}>
+                {labelA.toUpperCase()}
+              </p>
+              <p style={{ fontSize:48, fontWeight:800, lineHeight:1, color:C.text }}>
+                {valA}<span style={{ fontSize:20,fontWeight:600,color:C.muted }}>{unit}</span>
+              </p>
             </div>
-          ))}
+
+            {/* Trend arrow */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44,
+              borderRadius:'50%', background:'#F5F0EB' }}>
+              {same ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14M12 5l7 7-7 7" stroke={C.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : improved ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 17l6-6 4 4 8-8" stroke="#4A7C59" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 7h4v4" stroke="#4A7C59" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 7l6 6 4-4 8 8" stroke="#E74C3C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 17h4v-4" stroke="#E74C3C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+
+            {/* Month B */}
+            <div style={{ textAlign:'center' }}>
+              <p style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:1,textTransform:'uppercase',marginBottom:8 }}>
+                {labelB.toUpperCase()}
+              </p>
+              <p style={{ fontSize:48, fontWeight:800, lineHeight:1, color:C.text }}>
+                {valB}<span style={{ fontSize:20,fontWeight:600,color:C.muted }}>{unit}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Insight sentence */}
+          <p style={{
+            textAlign:'center', marginTop:18, fontSize:15, fontWeight:600, lineHeight:1.5,
+            color: same ? C.muted : improved ? '#4A7C59' : '#E74C3C',
+          }}>
+            {getSentence()}
+          </p>
         </div>
       </div>
 
