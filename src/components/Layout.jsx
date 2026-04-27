@@ -8,49 +8,39 @@ const navItems = [
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
-const NAV_HEIGHT = 64;
-
 export default function Layout() {
   return (
-    <div style={{ backgroundColor: '#F5F0EB', minHeight: '100dvh' }}>
-      <div
-        style={{
-          maxWidth: 512,
-          margin: '0 auto',
-          padding: `16px 16px calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom) + 16px) 16px`,
-          paddingTop: `calc(16px + env(safe-area-inset-top))`,
-        }}
-      >
+    <div style={{ background: '#F2EDE8', minHeight: '100dvh' }}>
+      <div style={{
+        maxWidth: 480,
+        margin: '0 auto',
+        padding: '0 16px',
+        paddingTop: 'calc(20px + env(safe-area-inset-top))',
+        paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
+      }}>
         <Outlet />
       </div>
 
-      <nav
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#fff',
-          borderTop: '1px solid #E8E3DE',
-          zIndex: 50,
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
-        <div style={{ maxWidth: 512, margin: '0 auto', display: 'flex', height: NAV_HEIGHT }}>
+      {/* Bottom Nav */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(0,0,0,0.08)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        zIndex: 100,
+      }}>
+        <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', height: 60 }}>
           {navItems.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none', fontSize: 11, fontWeight: 500 }}
-              className={({ isActive }) => isActive ? 'text-green-700' : 'text-gray-400'}
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={20} strokeWidth={isActive ? 2 : 1.5} color={isActive ? '#4A7C59' : '#888880'} />
-                  <span style={{ color: isActive ? '#4A7C59' : '#888880' }}>{label}</span>
-                </>
-              )}
+            <NavLink key={to} to={to} end={to === '/'}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                       justifyContent: 'center', gap: 3, textDecoration: 'none' }}>
+              {({ isActive }) => (<>
+                <Icon size={21} strokeWidth={isActive ? 2.2 : 1.6} color={isActive ? '#4A7C59' : '#B0A99F'} />
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.3,
+                               color: isActive ? '#4A7C59' : '#B0A99F' }}>{label}</span>
+              </>)}
             </NavLink>
           ))}
         </div>

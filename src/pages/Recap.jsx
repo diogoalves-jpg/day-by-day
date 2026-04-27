@@ -5,87 +5,67 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { GOALS } from '../lib/goals';
 
-function getMonthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
+const C = {
+  card: '#FFFFFF', green: '#4A7C59',
+  border: 'rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)',
+  muted: '#9C9490', text: '#1A1A1A',
+};
 
-function getMonthLabel(date) {
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
+function getMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function getMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); }
 
 function computeStats(allDays, year, month) {
-  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-  const days = Object.entries(allDays)
-    .filter(([k]) => k.startsWith(prefix))
-    .map(([, v]) => v);
-
-  const perfectDays = days.filter((d) => (d.completionPercent || 0) >= 80).length;
-  const journalEntries = days.filter((d) => d.journal && d.journal.trim()).length;
-  const photos = days.reduce((s, d) => s + (d.photos?.length || 0), 0);
-
-  // Best streak across entire history (not just this month)
+  const prefix = `${year}-${String(month+1).padStart(2,'0')}`;
+  const days = Object.entries(allDays).filter(([k])=>k.startsWith(prefix)).map(([,v])=>v);
+  const perfectDays = days.filter(d=>(d.completionPercent||0)>=80).length;
+  const journalEntries = days.filter(d=>d.journal?.trim()).length;
+  const photos = days.reduce((s,d)=>s+(d.photos?.length||0),0);
   const allDates = Object.keys(allDays).sort();
-  let bestStreak = 0, cur = 0;
-  for (let i = 0; i < allDates.length; i++) {
-    if ((allDays[allDates[i]].completionPercent || 0) > 0) {
-      cur++;
-      if (cur > bestStreak) bestStreak = cur;
-    } else {
-      cur = 0;
-    }
-  }
-
-  const goalDays = {};
-  GOALS.forEach((g) => {
-    goalDays[g.id] = days.filter((d) => d.goals?.[g.id]).length;
+  let best=0,cur=0;
+  allDates.forEach(date => {
+    if((allDays[date].completionPercent||0)>0){cur++;if(cur>best)best=cur;}else cur=0;
   });
-
-  const avgPercent = days.length
-    ? Math.round(days.reduce((s, d) => s + (d.completionPercent || 0), 0) / days.length)
-    : 0;
-
-  return { perfectDays, journalEntries, photos, bestStreak, goalDays, avgPercent, totalDays: days.length };
+  const goalDays = {};
+  GOALS.forEach(g => { goalDays[g.id]=days.filter(d=>d.goals?.[g.id]).length; });
+  const avg = days.length ? Math.round(days.reduce((s,d)=>s+(d.completionPercent||0),0)/days.length) : 0;
+  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length };
 }
 
-const COMPARE_OPTIONS = [
-  { value: 'overall',  label: 'Overall performance' },
-  { value: 'mental',   label: '🧠 Mental Wellbeing' },
-  { value: 'workout',  label: '💪 Working Out' },
-  { value: 'eating',   label: '🥗 Eating Healthy' },
-  { value: 'water',    label: '💧 Drinking Water' },
-  { value: 'walking',  label: '🚶 Walking' },
-  { value: 'sleep',    label: '😴 Sleeping Well' },
-  { value: 'reading',  label: '📖 Reading' },
-];
+function SectionLabel({ children }) {
+  return <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
+    textTransform: 'uppercase', color: C.muted, marginBottom: 12 }}>{children}</p>;
+}
 
-function CompareBar({ label, value, max, color }) {
-  const pct = max ? Math.round((value / max) * 100) : 0;
+function StatCard({ icon, value, label, sub, color = C.green }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-[#888880] w-16 text-right">{label}</span>
-      <div className="flex-1 h-3 bg-[#F5F0EB] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-xs font-medium w-8">{value}{max === 100 ? '%' : 'd'}</span>
+    <div style={{ background: C.card, borderRadius: 20, boxShadow: C.shadow,
+                  border: `1px solid ${C.border}`, padding: '18px 16px' }}>
+      <div style={{ color, marginBottom: 10 }}>{icon}</div>
+      <p style={{ fontSize: 34, fontWeight: 800, lineHeight: 1, marginBottom: 4 }}>{value}</p>
+      <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{label}</p>
+      <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{sub}</p>
     </div>
   );
 }
+
+const COMPARE_OPTIONS = [
+  { value: 'overall', label: 'Overall performance' },
+  ...GOALS.map(g => ({ value: g.id, label: `${g.emoji} ${g.label}` })),
+];
 
 export default function Recap() {
   const { user } = useAuth();
   const today = new Date();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [allDays, setAllDays] = useState({});
-  const [compareA, setCompareA] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
-  const [compareB, setCompareB] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth() - 2, 1)));
+  const [compareA, setCompareA] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth()-1, 1)));
+  const [compareB, setCompareB] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth()-2, 1)));
   const [compareBy, setCompareBy] = useState('overall');
 
   useEffect(() => {
     if (!user) return;
-    getDocs(collection(db, 'users', user.uid, 'days')).then((snap) => {
-      const data = {};
-      snap.forEach((d) => { data[d.id] = d.data(); });
-      setAllDays(data);
+    getDocs(collection(db,'users',user.uid,'days')).then(snap => {
+      const d = {}; snap.forEach(s=>{d[s.id]=s.data();}); setAllDays(d);
     });
   }, [user?.uid]);
 
@@ -93,146 +73,110 @@ export default function Recap() {
   const month = viewDate.getMonth();
   const stats = computeStats(allDays, year, month);
 
-  // Month selector options
-  const monthOptions = [];
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    monthOptions.push({ value: getMonthKey(d), label: getMonthLabel(d) });
-  }
+  const monthOptions = Array.from({length:12},(_,i)=>{
+    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+    return { value: getMonthKey(d), label: getMonthLabel(d) };
+  });
 
-  const getCompareValue = (dateStr, metric) => {
-    const [y, m] = dateStr.split('-').map(Number);
-    const s = computeStats(allDays, y, m - 1);
-    if (metric === 'overall') return s.avgPercent;
-    return s.goalDays[metric] || 0;
+  const getVal = (dateStr, metric) => {
+    const [y,m] = dateStr.split('-').map(Number);
+    const s = computeStats(allDays,y,m-1);
+    return metric==='overall' ? s.avgPercent : (s.goalDays[metric]||0);
   };
 
-  const valA = getCompareValue(compareA, compareBy);
-  const valB = getCompareValue(compareB, compareBy);
-  const isPercent = compareBy === 'overall';
-  const maxVal = isPercent ? 100 : Math.max(valA, valB, 1);
+  const valA = getVal(compareA, compareBy);
+  const valB = getVal(compareB, compareBy);
+  const isPercent = compareBy==='overall';
+  const maxVal = isPercent ? 100 : Math.max(valA,valB,1);
+  const labelA = monthOptions.find(o=>o.value===compareA)?.label?.split(' ')[0]||compareA;
+  const labelB = monthOptions.find(o=>o.value===compareB)?.label?.split(' ')[0]||compareB;
 
-  const labelA = monthOptions.find((o) => o.value === compareA)?.label || compareA;
-  const labelB = monthOptions.find((o) => o.value === compareB)?.label || compareB;
-
-  const noDataA = getCompareValue(compareA, 'overall') === 0 && computeStats(allDays, ...compareA.split('-').map((v,i) => i===1?Number(v)-1:Number(v))).totalDays === 0;
-  const noDataB = getCompareValue(compareB, 'overall') === 0 && computeStats(allDays, ...compareB.split('-').map((v,i) => i===1?Number(v)-1:Number(v))).totalDays === 0;
+  const selectStyle = {
+    width: '100%', background: '#F5F0EB', border: `1px solid ${C.border}`,
+    borderRadius: 12, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit',
+    outline: 'none', color: C.text, appearance: 'none', WebkitAppearance: 'none',
+  };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-center" style={{ fontFamily: "'Playfair Display', serif" }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, textAlign: 'center' }}>
         Monthly Recap
       </h1>
 
       {/* Month nav */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-2 text-[#888880] hover:text-[#1A1A1A]">
-          <ChevronLeft size={20} />
-        </button>
-        <span className="font-semibold text-[#1A1A1A]">{getMonthLabel(viewDate)}</span>
-        <button
-          onClick={() => setViewDate(new Date(year, month + 1, 1))}
-          disabled={getMonthKey(viewDate) >= getMonthKey(today)}
-          className="p-2 text-[#888880] hover:text-[#1A1A1A] disabled:opacity-30"
-        >
-          <ChevronRight size={20} />
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={()=>setViewDate(new Date(year,month-1,1))} style={{ background:'none',border:'none',padding:8,cursor:'pointer',color:C.muted }}><ChevronLeft size={22}/></button>
+        <span style={{ fontWeight:700,fontSize:16 }}>{getMonthLabel(viewDate)}</span>
+        <button onClick={()=>setViewDate(new Date(year,month+1,1))} disabled={getMonthKey(viewDate)>=getMonthKey(today)}
+          style={{ background:'none',border:'none',padding:8,cursor:'pointer',color:C.muted,opacity:getMonthKey(viewDate)>=getMonthKey(today)?0.3:1 }}><ChevronRight size={22}/></button>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white border border-[#E8E3DE] rounded-2xl p-4">
-          <Trophy size={20} className="text-[#4A7C59] mb-2" />
-          <p className="text-3xl font-bold">{stats.perfectDays}</p>
-          <p className="text-sm font-medium text-[#1A1A1A]">Perfect Days</p>
-          <p className="text-xs text-[#888880]">≥ 80% completed</p>
-        </div>
-        <div className="bg-white border border-[#E8E3DE] rounded-2xl p-4">
-          <Flame size={20} className="text-orange-400 mb-2" />
-          <p className="text-3xl font-bold">{stats.bestStreak}</p>
-          <p className="text-sm font-medium text-[#1A1A1A]">Best Streak</p>
-          <p className="text-xs text-[#888880]">active days in a row</p>
-        </div>
-        <div className="bg-white border border-[#E8E3DE] rounded-2xl p-4">
-          <BookOpen size={20} className="text-blue-400 mb-2" />
-          <p className="text-3xl font-bold">{stats.journalEntries}</p>
-          <p className="text-sm font-medium text-[#1A1A1A]">Journal Entries</p>
-          <p className="text-xs text-[#888880]">reflections written</p>
-        </div>
-        <div className="bg-white border border-[#E8E3DE] rounded-2xl p-4">
-          <Camera size={20} className="text-purple-400 mb-2" />
-          <p className="text-3xl font-bold">{stats.photos}</p>
-          <p className="text-sm font-medium text-[#1A1A1A]">Photos</p>
-          <p className="text-xs text-[#888880]">moments captured</p>
-        </div>
+      {/* Stat grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <StatCard icon={<Trophy size={22}/>} value={stats.perfectDays} label="Perfect Days" sub="≥ 80% completed" color="#4A7C59"/>
+        <StatCard icon={<Flame size={22}/>} value={stats.bestStreak} label="Best Streak" sub="active days in a row" color="#F97316"/>
+        <StatCard icon={<BookOpen size={22}/>} value={stats.journalEntries} label="Journal Entries" sub="reflections written" color="#3B82F6"/>
+        <StatCard icon={<Camera size={22}/>} value={stats.photos} label="Photos" sub="moments captured" color="#A855F7"/>
       </div>
 
       {/* Goal completion */}
       <div>
-        <p className="text-xs font-semibold text-[#888880] tracking-widest uppercase mb-3">Goal Completion</p>
-        <div className="grid grid-cols-2 gap-2">
-          {GOALS.map((g) => (
-            <div key={g.id} className="bg-white border border-[#E8E3DE] rounded-xl p-3 flex items-center gap-3">
-              <span className="text-xl">{g.emoji}</span>
+        <SectionLabel>Goal Completion</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {GOALS.map(g => (
+            <div key={g.id} style={{ background:C.card, borderRadius:16, boxShadow:C.shadow,
+              border:`1px solid ${C.border}`, padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:22 }}>{g.emoji}</span>
               <div>
-                <p className="text-xs text-[#888880]">{g.label}</p>
-                <p className="font-semibold text-sm">{stats.goalDays[g.id] ?? 0} days</p>
+                <p style={{ fontSize:12, color:C.muted, marginBottom:2 }}>{g.label}</p>
+                <p style={{ fontSize:16, fontWeight:700 }}>{stats.goalDays[g.id]??0} <span style={{ fontSize:12,fontWeight:400,color:C.muted }}>days</span></p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Month Comparison */}
+      {/* Month comparison */}
       <div>
-        <p className="text-xs font-semibold text-[#888880] tracking-widest uppercase mb-3">Month Comparison</p>
-        <div className="bg-white border border-[#E8E3DE] rounded-2xl p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <SectionLabel>Month Comparison</SectionLabel>
+        <div style={{ background:C.card, borderRadius:20, boxShadow:C.shadow, border:`1px solid ${C.border}`, padding:'16px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
             <div>
-              <p className="text-xs text-[#888880] mb-1 uppercase tracking-wide">Month A</p>
-              <select
-                value={compareA}
-                onChange={(e) => setCompareA(e.target.value)}
-                className="w-full bg-[#F5F0EB] border border-[#E8E3DE] rounded-xl px-3 py-2 text-sm focus:outline-none"
-              >
-                {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Month A</p>
+              <select value={compareA} onChange={e=>setCompareA(e.target.value)} style={selectStyle}>
+                {monthOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <p className="text-xs text-[#888880] mb-1 uppercase tracking-wide">Month B</p>
-              <select
-                value={compareB}
-                onChange={(e) => setCompareB(e.target.value)}
-                className="w-full bg-[#F5F0EB] border border-[#E8E3DE] rounded-xl px-3 py-2 text-sm focus:outline-none"
-              >
-                {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Month B</p>
+              <select value={compareB} onChange={e=>setCompareB(e.target.value)} style={selectStyle}>
+                {monthOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
-
-          <div>
-            <p className="text-xs text-[#888880] mb-1 uppercase tracking-wide">Compare by</p>
-            <select
-              value={compareBy}
-              onChange={(e) => setCompareBy(e.target.value)}
-              className="w-full bg-[#F5F0EB] border border-[#E8E3DE] rounded-xl px-3 py-2 text-sm focus:outline-none"
-            >
-              {COMPARE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <div style={{ marginBottom:16 }}>
+            <p style={{ fontSize:11,fontWeight:600,color:C.muted,marginBottom:6,letterSpacing:0.8,textTransform:'uppercase' }}>Compare by</p>
+            <select value={compareBy} onChange={e=>setCompareBy(e.target.value)} style={selectStyle}>
+              {COMPARE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
-          {noDataA && noDataB ? (
-            <p className="text-sm text-[#888880] text-center py-2">No data for the selected months.</p>
-          ) : (
-            <div className="space-y-3 pt-1">
-              <CompareBar label={labelA.split(' ')[0]} value={valA} max={maxVal} color="#4A7C59" />
-              <CompareBar label={labelB.split(' ')[0]} value={valB} max={maxVal} color="#A8C840" />
+          {/* Bars */}
+          {[{label:labelA,val:valA,color:'#4A7C59'},{label:labelB,val:valB,color:'#A8C840'}].map(({label,val,color})=>(
+            <div key={label} style={{ marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                <span style={{ fontSize:13,fontWeight:600 }}>{label}</span>
+                <span style={{ fontSize:13,fontWeight:700,color }}>{val}{isPercent?'%':'d'}</span>
+              </div>
+              <div style={{ height:10,background:'#F2EDE8',borderRadius:10,overflow:'hidden' }}>
+                <div style={{ height:'100%',width:`${maxVal?(val/maxVal)*100:0}%`,background:color,borderRadius:10,transition:'width 0.5s ease' }}/>
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
 
-      <div className="h-4" />
+      <div style={{ height: 8 }} />
     </div>
   );
 }
