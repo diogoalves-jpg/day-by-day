@@ -10,12 +10,18 @@ const navItems = [
 
 export default function Layout() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1 pb-20 max-w-lg mx-auto w-full px-4 pt-6">
+    <div className="flex flex-col min-h-screen min-h-[100dvh]">
+      {/* Top safe area */}
+      <div style={{ paddingTop: 'env(safe-area-inset-top)', backgroundColor: '#F5F0EB' }} />
+
+      <main className="flex-1 overflow-y-auto w-full max-w-lg mx-auto px-4 pt-4"
+            style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E8E3DE] z-50">
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E8E3DE] z-50"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-lg mx-auto flex items-center justify-around h-16">
           {navItems.map(({ to, label, Icon }) => (
             <NavLink

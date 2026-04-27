@@ -8,11 +8,18 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   color: #1A1A1A;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 ::-webkit-scrollbar { width: 0px; }
+
+/* iPhone safe area support */
+.safe-top    { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
