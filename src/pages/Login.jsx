@@ -29,11 +29,12 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 340, textAlign: 'center' }}>
         {/* Logo */}
         <div style={{
-          width: 80, height: 80, borderRadius: 24, background: '#fff',
-          boxShadow: '0 8px 32px rgba(74,124,89,0.15)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px', fontSize: 36,
-        }}>📅</div>
+          width: 88, height: 88, borderRadius: 28,
+          boxShadow: '0 8px 32px rgba(74,124,89,0.2)',
+          margin: '0 auto 24px', overflow: 'hidden',
+        }}>
+          <img src="/logo.png" alt="Day by Day" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
 
         <h1 style={{
           fontFamily: "'Playfair Display', serif", fontSize: 32,
