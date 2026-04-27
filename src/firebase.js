@@ -1,13 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// ─────────────────────────────────────────────
-// PASTE YOUR FIREBASE CONFIG HERE
-// 1. Go to https://console.firebase.google.com
-// 2. Create a project → Add web app
-// 3. Copy the firebaseConfig object below
-// ─────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBIgD5mNjlKEsw8n_Kg48WasJ1grvzSp44",
   authDomain: "day-by-day-71e88.firebaseapp.com",
@@ -21,3 +15,6 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Persist auth session in localStorage so it survives page reloads and redirects
+setPersistence(auth, browserLocalPersistence).catch(() => {});
