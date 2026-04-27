@@ -8,36 +8,47 @@ const navItems = [
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
+const NAV_HEIGHT = 64;
+
 export default function Layout() {
   return (
-    <div className="flex flex-col min-h-screen min-h-[100dvh]">
-      {/* Top safe area */}
-      <div style={{ paddingTop: 'env(safe-area-inset-top)', backgroundColor: '#F5F0EB' }} />
-
-      <main className="flex-1 overflow-y-auto w-full max-w-lg mx-auto px-4 pt-4"
-            style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
+    <div style={{ backgroundColor: '#F5F0EB', minHeight: '100dvh' }}>
+      <div
+        style={{
+          maxWidth: 512,
+          margin: '0 auto',
+          padding: `16px 16px calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom) + 16px) 16px`,
+          paddingTop: `calc(16px + env(safe-area-inset-top))`,
+        }}
+      >
         <Outlet />
-      </main>
+      </div>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E8E3DE] z-50"
-           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="max-w-lg mx-auto flex items-center justify-around h-16">
+      <nav
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#fff',
+          borderTop: '1px solid #E8E3DE',
+          zIndex: 50,
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div style={{ maxWidth: 512, margin: '0 auto', display: 'flex', height: NAV_HEIGHT }}>
           {navItems.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-colors ${
-                  isActive ? 'text-[#4A7C59]' : 'text-[#888880]'
-                }`
-              }
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none', fontSize: 11, fontWeight: 500 }}
+              className={({ isActive }) => isActive ? 'text-green-700' : 'text-gray-400'}
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
-                  <span>{label}</span>
+                  <Icon size={20} strokeWidth={isActive ? 2 : 1.5} color={isActive ? '#4A7C59' : '#888880'} />
+                  <span style={{ color: isActive ? '#4A7C59' : '#888880' }}>{label}</span>
                 </>
               )}
             </NavLink>
