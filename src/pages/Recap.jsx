@@ -5,6 +5,21 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { GOALS } from '../lib/goals';
 
+// Get the Monday date of a given ISO week key "YYYY-Www"
+function weekKeyToMonday(weekKey) {
+  const [yearStr, wStr] = weekKey.split('-W');
+  const year = Number(yearStr), week = Number(wStr);
+  const jan4 = new Date(year, 0, 4);
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (week - 1) * 7);
+  return monday;
+}
+
+function weekBelongsToMonth(weekKey, year, month) {
+  const monday = weekKeyToMonday(weekKey);
+  return monday.getFullYear() === year && monday.getMonth() === month;
+}
+
 const C = {
   card: '#FFFFFF', green: '#4A7C59',
   border: 'rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)',
@@ -14,7 +29,7 @@ const C = {
 function getMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function getMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); }
 
-function computeStats(allDays, year, month) {
+function computeStats(allDays, allWeeklyGoals, year, month) {
   const prefix = `${year}-${String(month+1).padStart(2,'0')}`;
   const days = Object.entries(allDays).filter(([k])=>k.startsWith(prefix)).map(([,v])=>v);
   const perfectDays = days.filter(d=>(d.completionPercent||0)>=80).length;
@@ -28,7 +43,13 @@ function computeStats(allDays, year, month) {
   const goalDays = {};
   GOALS.forEach(g => { goalDays[g.id]=days.filter(d=>d.goals?.[g.id]).length; });
   const avg = days.length ? Math.round(days.reduce((s,d)=>s+(d.completionPercent||0),0)/days.length) : 0;
-  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length };
+
+  // Count completed weekly goals for weeks whose Monday falls in this month
+  const weeklyGoalsCompleted = Object.entries(allWeeklyGoals)
+    .filter(([wk]) => weekBelongsToMonth(wk, year, month))
+    .reduce((sum, [, data]) => sum + (data.goals||[]).filter(g=>g.completed).length, 0);
+
+  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length, weeklyGoalsCompleted };
 }
 
 function SectionLabel({ children }) {
@@ -50,6 +71,7 @@ function StatCard({ icon, value, label, sub, color = C.green }) {
 
 const COMPARE_OPTIONS = [
   { value: 'overall', label: 'Overall performance' },
+  { value: 'weeklyGoals', label: '✅ Weekly goals completed' },
   ...GOALS.map(g => ({ value: g.id, label: `${g.emoji} ${g.label}` })),
 ];
 
@@ -58,6 +80,7 @@ export default function Recap() {
   const today = new Date();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [allDays, setAllDays] = useState({});
+  const [allWeeklyGoals, setAllWeeklyGoals] = useState({});
   const [compareA, setCompareA] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth()-1, 1)));
   const [compareB, setCompareB] = useState(getMonthKey(new Date(today.getFullYear(), today.getMonth()-2, 1)));
   const [compareBy, setCompareBy] = useState('overall');
@@ -67,11 +90,14 @@ export default function Recap() {
     getDocs(collection(db,'users',user.uid,'days')).then(snap => {
       const d = {}; snap.forEach(s=>{d[s.id]=s.data();}); setAllDays(d);
     });
+    getDocs(collection(db,'users',user.uid,'weeklyGoals')).then(snap => {
+      const d = {}; snap.forEach(s=>{d[s.id]=s.data();}); setAllWeeklyGoals(d);
+    });
   }, [user?.uid]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const stats = computeStats(allDays, year, month);
+  const stats = computeStats(allDays, allWeeklyGoals, year, month);
 
   const monthOptions = Array.from({length:12},(_,i)=>{
     const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
@@ -80,13 +106,15 @@ export default function Recap() {
 
   const getVal = (dateStr, metric) => {
     const [y,m] = dateStr.split('-').map(Number);
-    const s = computeStats(allDays,y,m-1);
-    return metric==='overall' ? s.avgPercent : (s.goalDays[metric]||0);
+    const s = computeStats(allDays, allWeeklyGoals, y, m-1);
+    if (metric === 'overall') return s.avgPercent;
+    if (metric === 'weeklyGoals') return s.weeklyGoalsCompleted;
+    return s.goalDays[metric] || 0;
   };
 
   const valA = getVal(compareA, compareBy);
   const valB = getVal(compareB, compareBy);
-  const isPercent = compareBy==='overall';
+  const isPercent = compareBy === 'overall';
   const maxVal = isPercent ? 100 : Math.max(valA,valB,1);
   const labelA = monthOptions.find(o=>o.value===compareA)?.label?.split(' ')[0]||compareA;
   const labelB = monthOptions.find(o=>o.value===compareB)?.label?.split(' ')[0]||compareB;
