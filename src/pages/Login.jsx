@@ -12,7 +12,12 @@ export default function Login() {
     try {
       await signInWithGoogle();
     } catch (e) {
-      setError(e.message || 'Sign-in failed. Please try again.');
+      // popup-blocked on iOS: show a friendly message
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
+        setError('Popup was blocked. Please allow popups for this site in your browser settings, then try again.');
+      } else {
+        setError(e.message || 'Sign-in failed. Please try again.');
+      }
       setLoading(false);
     }
   };
