@@ -38,7 +38,7 @@ export function useDay(dateStr) {
   const ensureDoc = async () => {
     const snap = await getDoc(docRef);
     if (!snap.exists()) {
-      await setDoc(docRef, { goals: {}, journal: '', completionPercent: 0 });
+      await setDoc(docRef, { goals: {}, journal: '', completionPercent: 0, photoCount: 0 });
     }
   };
 
@@ -62,12 +62,17 @@ export function useDay(dateStr) {
     await ensureDoc();
     const newDoc = await addDoc(photosCol, { base64, timestamp });
     const photo = { id: newDoc.id, base64, timestamp };
-    setDay((d) => ({ ...d, photos: [...(d?.photos || []), photo] }));
+    const newPhotos = [...(day?.photos || []), photo];
+    setDay((d) => ({ ...d, photos: newPhotos }));
+    // Keep photoCount on the day doc so Recap stats can read it
+    await updateDoc(docRef, { photoCount: newPhotos.length });
   };
 
   const removePhoto = async (id) => {
     await deleteDoc(doc(db, 'users', user.uid, 'days', dateStr, 'photos', id));
-    setDay((d) => ({ ...d, photos: (d?.photos || []).filter((p) => p.id !== id) }));
+    const newPhotos = (day?.photos || []).filter((p) => p.id !== id);
+    setDay((d) => ({ ...d, photos: newPhotos }));
+    await updateDoc(docRef, { photoCount: newPhotos.length });
   };
 
   return { day, loading, updateGoal, updateJournal, addPhoto, removePhoto };

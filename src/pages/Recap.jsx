@@ -34,7 +34,7 @@ function computeStats(allDays, allWeeklyGoals, year, month) {
   const days = Object.entries(allDays).filter(([k])=>k.startsWith(prefix)).map(([,v])=>v);
   const perfectDays = days.filter(d=>(d.completionPercent||0)>=80).length;
   const journalEntries = days.filter(d=>d.journal?.trim()).length;
-  const photos = days.reduce((s,d)=>s+(d.photos?.length||0),0);
+  const photos = days.reduce((s,d)=>s+(d.photoCount||0),0);
   const allDates = Object.keys(allDays).sort();
   let best=0,cur=0;
   allDates.forEach(date => {
