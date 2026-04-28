@@ -26,6 +26,14 @@ const C = {
   muted: '#9C9490', text: '#1A1A1A',
 };
 
+const MOODS = [
+  { value: 'great', emoji: '😄', label: 'Great', lowerIsBetter: false },
+  { value: 'good',  emoji: '🙂', label: 'Good',  lowerIsBetter: false },
+  { value: 'okay',  emoji: '😐', label: 'Okay',  lowerIsBetter: false },
+  { value: 'low',   emoji: '😕', label: 'Low',   lowerIsBetter: true  },
+  { value: 'bad',   emoji: '😞', label: 'Bad',   lowerIsBetter: true  },
+];
+
 function getMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function getMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); }
 
@@ -49,7 +57,11 @@ function computeStats(allDays, allWeeklyGoals, year, month) {
     .filter(([wk]) => weekBelongsToMonth(wk, year, month))
     .reduce((sum, [, data]) => sum + (data.goals||[]).filter(g=>g.completed).length, 0);
 
-  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length, weeklyGoalsCompleted };
+  // Count days per mood
+  const moodDays = {};
+  MOODS.forEach(m => { moodDays[m.value] = days.filter(d => d.mood === m.value).length; });
+
+  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length, weeklyGoalsCompleted, moodDays };
 }
 
 function SectionLabel({ children }) {
@@ -70,9 +82,10 @@ function StatCard({ icon, value, label, sub, color = C.green }) {
 }
 
 const COMPARE_OPTIONS = [
-  { value: 'overall', label: 'Overall performance' },
-  { value: 'weeklyGoals', label: '✅ Weekly goals completed' },
-  ...GOALS.map(g => ({ value: g.id, label: `${g.emoji} ${g.label}` })),
+  { value: 'overall',      label: 'Overall performance',        lowerIsBetter: false },
+  { value: 'weeklyGoals',  label: '✅ Weekly goals completed',  lowerIsBetter: false },
+  ...GOALS.map(g  => ({ value: g.id,      label: `${g.emoji} ${g.label}`,  lowerIsBetter: false })),
+  ...MOODS.map(m  => ({ value: `mood_${m.value}`, label: `${m.emoji} Feeling ${m.label}`, lowerIsBetter: m.lowerIsBetter })),
 ];
 
 export default function Recap() {
@@ -109,26 +122,38 @@ export default function Recap() {
     const s = computeStats(allDays, allWeeklyGoals, y, m-1);
     if (metric === 'overall') return s.avgPercent;
     if (metric === 'weeklyGoals') return s.weeklyGoalsCompleted;
+    if (metric.startsWith('mood_')) return s.moodDays[metric.slice(5)] || 0;
     return s.goalDays[metric] || 0;
   };
 
   const valA = getVal(compareA, compareBy);
   const valB = getVal(compareB, compareBy);
+  const currentOption = COMPARE_OPTIONS.find(o => o.value === compareBy);
+  const lowerIsBetter = currentOption?.lowerIsBetter ?? false;
   const isPercent = compareBy === 'overall';
   const unit = isPercent ? '%' : 'd';
   const labelA = monthOptions.find(o=>o.value===compareA)?.label || compareA;
   const labelB = monthOptions.find(o=>o.value===compareB)?.label || compareB;
   const diff = valA - valB;
-  const improved = diff > 0;
+  // "improved" means the change is in the desired direction
+  const improved = lowerIsBetter ? diff < 0 : diff > 0;
   const same = diff === 0;
 
   const getSentence = () => {
-    const metric = COMPARE_OPTIONS.find(o=>o.value===compareBy)?.label || compareBy;
-    if (same) return `No change in ${metric.toLowerCase()} between these months.`;
+    const metaLabel = currentOption?.label || compareBy;
+    if (same) return `No change in ${metaLabel.toLowerCase()} between these months.`;
     const change = Math.abs(diff);
-    const dir = improved ? 'improved' : 'declined';
     const changeStr = isPercent ? `${change}%` : `${change} day${change !== 1 ? 's' : ''}`;
-    return `You ${dir} by ${changeStr} from ${labelB.split(' ')[0]} to ${labelA.split(' ')[0]} ${labelA.split(' ')[1]}.`;
+    const monthA = `${labelA.split(' ')[0]} ${labelA.split(' ')[1]}`;
+    const monthB = labelB.split(' ')[0];
+    if (compareBy.startsWith('mood_')) {
+      const moodMeta = MOODS.find(m => `mood_${m.value}` === compareBy);
+      const feeling = moodMeta ? `feeling ${moodMeta.label.toLowerCase()}` : metaLabel.toLowerCase();
+      const dir = diff > 0 ? 'more' : 'fewer';
+      return `${changeStr} ${dir} days ${feeling} in ${monthA} vs ${monthB}.`;
+    }
+    const dir = improved ? 'improved' : 'declined';
+    return `You ${dir} by ${changeStr} from ${monthB} to ${monthA}.`;
   };
 
   const selectStyle = {
