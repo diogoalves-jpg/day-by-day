@@ -5,6 +5,14 @@ import { useDay } from '../hooks/useDay';
 import { useSettings } from '../hooks/useSettings';
 import { compressImage } from '../lib/imageUtils';
 
+const MOODS = [
+  { value: 'great',   emoji: '😄', label: 'Great' },
+  { value: 'good',    emoji: '🙂', label: 'Good'  },
+  { value: 'okay',    emoji: '😐', label: 'Okay'  },
+  { value: 'low',     emoji: '😕', label: 'Low'   },
+  { value: 'bad',     emoji: '😞', label: 'Bad'   },
+];
+
 const C = {
   bg: '#F2EDE8',
   card: '#FFFFFF',
@@ -37,7 +45,7 @@ function SectionLabel({ children }) {
 
 export default function Today() {
   const today = toDateStr();
-  const { day, loading, updateGoal, updateJournal, addPhoto, removePhoto } = useDay(today);
+  const { day, loading, updateGoal, updateJournal, updateMood, addPhoto, removePhoto } = useDay(today);
   const { descriptions } = useSettings();
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
@@ -109,6 +117,37 @@ export default function Today() {
             <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1 }}>{percent}%</span>
             <span style={{ fontSize: 9, color: C.muted, fontWeight: 500 }}>Today</span>
           </div>
+        </div>
+      </div>
+
+      {/* Mood */}
+      <div>
+        <SectionLabel>How are you feeling today?</SectionLabel>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+          {MOODS.map((m) => {
+            const selected = day?.mood === m.value;
+            return (
+              <button
+                key={m.value}
+                onClick={() => updateMood(selected ? null : m.value)}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  gap: 5, padding: '12px 4px', borderRadius: 18, border: 'none',
+                  cursor: 'pointer',
+                  background: selected ? 'rgba(74,124,89,0.12)' : C.card,
+                  boxShadow: selected ? 'none' : C.shadow,
+                  outline: selected ? '1.5px solid rgba(74,124,89,0.35)' : `1px solid ${C.border}`,
+                  transition: 'all 0.15s',
+                  transform: selected ? 'scale(1.06)' : 'scale(1)',
+                }}>
+                <span style={{ fontSize: 26, lineHeight: 1 }}>{m.emoji}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: selected ? C.green : C.muted }}>
+                  {m.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

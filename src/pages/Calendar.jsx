@@ -1,5 +1,13 @@
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, BookOpen, Image } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Plus, X, BookOpen, Image, Pencil, Check } from 'lucide-react';
+
+const MOODS = [
+  { value: 'great', emoji: '😄', label: 'Great' },
+  { value: 'good',  emoji: '🙂', label: 'Good'  },
+  { value: 'okay',  emoji: '😐', label: 'Okay'  },
+  { value: 'low',   emoji: '😕', label: 'Low'   },
+  { value: 'bad',   emoji: '😞', label: 'Bad'   },
+];
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -87,6 +95,22 @@ function DayDetailSheet({ dateStr, onClose, allDays }) {
             </button>
           </div>
 
+          {/* Mood */}
+          {data?.mood && (() => {
+            const m = MOODS.find(x => x.value === data.mood);
+            return m ? (
+              <div style={{ marginBottom: 20 }}>
+                <SectionLabel>Mood</SectionLabel>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: 'rgba(74,124,89,0.08)', border: '1px solid rgba(74,124,89,0.2)',
+                  borderRadius: 12, padding: '8px 14px' }}>
+                  <span style={{ fontSize: 22 }}>{m.emoji}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: C.green }}>{m.label}</span>
+                </div>
+              </div>
+            ) : null;
+          })()}
+
           {/* Goals achieved */}
           {completedGoals.length > 0 && (
             <div style={{ marginBottom: 20 }}>
@@ -153,6 +177,8 @@ export default function Calendar() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [weekGoals, setWeekGoals] = useState([]);
   const [newGoal, setNewGoal] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
 
   const year = viewDate.getFullYear();
@@ -195,6 +221,19 @@ export default function Calendar() {
     if (!newGoal.trim()) return;
     await saveWeekGoals([...weekGoals, { id: Date.now(), text: newGoal.trim(), completed: false }]);
     setNewGoal('');
+  };
+
+  const deleteWeekGoal = async (id) => {
+    await saveWeekGoals(weekGoals.filter(g => g.id !== id));
+  };
+
+  const startEdit = (g) => { setEditingId(g.id); setEditingText(g.text); };
+
+  const commitEdit = async (id) => {
+    if (!editingText.trim()) return;
+    await saveWeekGoals(weekGoals.map(g => g.id === id ? { ...g, text: editingText.trim() } : g));
+    setEditingId(null);
+    setEditingText('');
   };
 
   // Build grid
@@ -287,19 +326,51 @@ export default function Calendar() {
           </div>
           <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {weekGoals.map(g => (
-              <button key={g.id} onClick={() => saveWeekGoals(weekGoals.map(wg => wg.id===g.id?{...wg,completed:!wg.completed}:wg))}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                  border: g.completed ? 'none' : '2px solid #D5CFC9',
-                  background: g.completed ? C.green : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {g.completed && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>}
-                </div>
-                <span style={{ fontSize: 14, color: g.completed ? C.muted : C.text,
-                               textDecoration: g.completed ? 'line-through' : 'none' }}>{g.text}</span>
-              </button>
+              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Toggle checkbox */}
+                <button onClick={() => saveWeekGoals(weekGoals.map(wg => wg.id===g.id?{...wg,completed:!wg.completed}:wg))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    border: g.completed ? 'none' : '2px solid #D5CFC9',
+                    background: g.completed ? C.green : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {g.completed && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>}
+                  </div>
+                </button>
+
+                {/* Text or inline edit input */}
+                {editingId === g.id ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={editingText}
+                      onChange={e => setEditingText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(g.id); if (e.key === 'Escape') setEditingId(null); }}
+                      style={{ flex: 1, background: '#F5F0EB', border: 'none', borderRadius: 10,
+                        padding: '6px 10px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }}
+                    />
+                    <button onClick={() => commitEdit(g.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.green }}>
+                      <Check size={16} />
+                    </button>
+                    <button onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted }}>
+                      <X size={15} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ flex: 1, fontSize: 14, color: g.completed ? C.muted : C.text,
+                      textDecoration: g.completed ? 'line-through' : 'none' }}>{g.text}</span>
+                    <button onClick={() => startEdit(g)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted, opacity: 0.6 }}>
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => deleteWeekGoal(g.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#E8756A', opacity: 0.7 }}>
+                      <X size={15} />
+                    </button>
+                  </>
+                )}
+              </div>
             ))}
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <input value={newGoal} onChange={e=>setNewGoal(e.target.value)}

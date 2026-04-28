@@ -58,6 +58,12 @@ export function useDay(dateStr) {
     await updateDoc(docRef, { journal: text });
   };
 
+  const updateMood = async (mood) => {
+    setDay((d) => ({ ...d, mood }));
+    await ensureDoc();
+    await updateDoc(docRef, { mood });
+  };
+
   const addPhoto = async (base64, timestamp = Date.now()) => {
     await ensureDoc();
     const newDoc = await addDoc(photosCol, { base64, timestamp });
@@ -75,5 +81,5 @@ export function useDay(dateStr) {
     await updateDoc(docRef, { photoCount: newPhotos.length });
   };
 
-  return { day, loading, updateGoal, updateJournal, addPhoto, removePhoto };
+  return { day, loading, updateGoal, updateJournal, updateMood, addPhoto, removePhoto };
 }
