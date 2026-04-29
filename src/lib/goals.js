@@ -1,11 +1,13 @@
 export const GOALS = [
-  { id: 'mental',  label: 'Mental Wellbeing', emoji: '🧠' },
-  { id: 'workout', label: 'Working Out',       emoji: '💪' },
-  { id: 'eating',  label: 'Eating Healthy',    emoji: '🥗' },
-  { id: 'water',   label: 'Drinking Water',    emoji: '💧' },
-  { id: 'walking', label: 'Walking',           emoji: '🚶' },
-  { id: 'sleep',   label: 'Sleeping Well',     emoji: '😴' },
-  { id: 'reading', label: 'Reading',           emoji: '📖' },
+  { id: 'mental',   label: 'Mental Wellbeing', emoji: '🧠' },
+  { id: 'workout',  label: 'Working Out',       emoji: '💪' },
+  { id: 'protein',  label: 'Protein',           emoji: '🥩' },
+  { id: 'kcals',    label: 'Daily kcals',       emoji: '🔥' },
+  { id: 'clean',    label: 'Eating Clean',      emoji: '🥗' },
+  { id: 'water',    label: 'Drinking Water',    emoji: '💧' },
+  { id: 'walking',  label: 'Walking',           emoji: '🚶' },
+  { id: 'sleep',    label: 'Sleeping Well',     emoji: '😴' },
+  { id: 'reading',  label: 'Reading',           emoji: '📖' },
 ];
 
 export const getGreeting = () => {

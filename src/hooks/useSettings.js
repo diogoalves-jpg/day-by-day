@@ -6,7 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 export const DEFAULT_DESCRIPTIONS = {
   mental:  '3 hours screen time max',
   workout: 'Gym or other sports activity',
-  eating:  'Protein every meal',
+  protein: 'Hit your protein target',
+  kcals:   'Stay within daily calorie goal',
+  clean:   'No junk food or processed food',
   water:   '2L of water',
   walking: '7000 steps',
   sleep:   '8 hours of quality sleep',

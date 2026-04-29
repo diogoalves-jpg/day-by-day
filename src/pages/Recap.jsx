@@ -26,13 +26,6 @@ const C = {
   muted: '#9C9490', text: '#1A1A1A',
 };
 
-const MOODS = [
-  { value: 'great', emoji: '😄', label: 'Great', lowerIsBetter: false },
-  { value: 'good',  emoji: '🙂', label: 'Good',  lowerIsBetter: false },
-  { value: 'okay',  emoji: '😐', label: 'Okay',  lowerIsBetter: false },
-  { value: 'low',   emoji: '😕', label: 'Low',   lowerIsBetter: true  },
-  { value: 'bad',   emoji: '😞', label: 'Bad',   lowerIsBetter: true  },
-];
 
 function getMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function getMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); }
@@ -57,11 +50,14 @@ function computeStats(allDays, allWeeklyGoals, year, month) {
     .filter(([wk]) => weekBelongsToMonth(wk, year, month))
     .reduce((sum, [, data]) => sum + (data.goals||[]).filter(g=>g.completed).length, 0);
 
-  // Count days per mood
-  const moodDays = {};
-  MOODS.forEach(m => { moodDays[m.value] = days.filter(d => d.mood === m.value).length; });
+  // Mood percentages (% of days that had any mood logged)
+  const daysWithMood = days.filter(d => d.mood).length;
+  const positiveDays = days.filter(d => d.mood === 'great' || d.mood === 'good').length;
+  const negativeDays = days.filter(d => d.mood === 'low'   || d.mood === 'bad' ).length;
+  const moodPositivePct = daysWithMood ? Math.round((positiveDays / daysWithMood) * 100) : 0;
+  const moodNegativePct = daysWithMood ? Math.round((negativeDays / daysWithMood) * 100) : 0;
 
-  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length, weeklyGoalsCompleted, moodDays };
+  return { perfectDays, journalEntries, photos, bestStreak: best, goalDays, avgPercent: avg, totalDays: days.length, weeklyGoalsCompleted, moodPositivePct, moodNegativePct };
 }
 
 function SectionLabel({ children }) {
@@ -82,10 +78,11 @@ function StatCard({ icon, value, label, sub, color = C.green }) {
 }
 
 const COMPARE_OPTIONS = [
-  { value: 'overall',      label: 'Overall performance',        lowerIsBetter: false },
-  { value: 'weeklyGoals',  label: '✅ Weekly goals completed',  lowerIsBetter: false },
-  ...GOALS.map(g  => ({ value: g.id,      label: `${g.emoji} ${g.label}`,  lowerIsBetter: false })),
-  ...MOODS.map(m  => ({ value: `mood_${m.value}`, label: `${m.emoji} Feeling ${m.label}`, lowerIsBetter: m.lowerIsBetter })),
+  { value: 'overall',       label: 'Overall performance',          lowerIsBetter: false, isPercent: true  },
+  { value: 'weeklyGoals',   label: '✅ Weekly goals completed',    lowerIsBetter: false, isPercent: false },
+  ...GOALS.map(g => ({ value: g.id, label: `${g.emoji} ${g.label}`, lowerIsBetter: false, isPercent: false })),
+  { value: 'moodPositive',  label: '😊 % Positive days (Great + Good)', lowerIsBetter: false, isPercent: true  },
+  { value: 'moodNegative',  label: '😟 % Negative days (Low + Bad)',    lowerIsBetter: true,  isPercent: true  },
 ];
 
 export default function Recap() {
@@ -120,9 +117,10 @@ export default function Recap() {
   const getVal = (dateStr, metric) => {
     const [y,m] = dateStr.split('-').map(Number);
     const s = computeStats(allDays, allWeeklyGoals, y, m-1);
-    if (metric === 'overall') return s.avgPercent;
-    if (metric === 'weeklyGoals') return s.weeklyGoalsCompleted;
-    if (metric.startsWith('mood_')) return s.moodDays[metric.slice(5)] || 0;
+    if (metric === 'overall')       return s.avgPercent;
+    if (metric === 'weeklyGoals')   return s.weeklyGoalsCompleted;
+    if (metric === 'moodPositive')  return s.moodPositivePct;
+    if (metric === 'moodNegative')  return s.moodNegativePct;
     return s.goalDays[metric] || 0;
   };
 
@@ -130,7 +128,7 @@ export default function Recap() {
   const valB = getVal(compareB, compareBy);
   const currentOption = COMPARE_OPTIONS.find(o => o.value === compareBy);
   const lowerIsBetter = currentOption?.lowerIsBetter ?? false;
-  const isPercent = compareBy === 'overall';
+  const isPercent = currentOption?.isPercent ?? false;
   const unit = isPercent ? '%' : 'd';
   const labelA = monthOptions.find(o=>o.value===compareA)?.label || compareA;
   const labelB = monthOptions.find(o=>o.value===compareB)?.label || compareB;
@@ -146,11 +144,10 @@ export default function Recap() {
     const changeStr = isPercent ? `${change}%` : `${change} day${change !== 1 ? 's' : ''}`;
     const monthA = `${labelA.split(' ')[0]} ${labelA.split(' ')[1]}`;
     const monthB = labelB.split(' ')[0];
-    if (compareBy.startsWith('mood_')) {
-      const moodMeta = MOODS.find(m => `mood_${m.value}` === compareBy);
-      const feeling = moodMeta ? `feeling ${moodMeta.label.toLowerCase()}` : metaLabel.toLowerCase();
+    if (compareBy === 'moodPositive' || compareBy === 'moodNegative') {
+      const kind = compareBy === 'moodPositive' ? 'positive' : 'negative';
       const dir = diff > 0 ? 'more' : 'fewer';
-      return `${changeStr} ${dir} days ${feeling} in ${monthA} vs ${monthB}.`;
+      return `${changeStr} ${dir} ${kind} mood days in ${monthA} vs ${monthB}.`;
     }
     const dir = improved ? 'improved' : 'declined';
     return `You ${dir} by ${changeStr} from ${monthB} to ${monthA}.`;

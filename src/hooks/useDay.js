@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { GOALS } from '../lib/goals';
 
 export function useDay(dateStr) {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export function useDay(dateStr) {
   const updateGoal = async (goalId, value) => {
     const goals = { ...(day?.goals || {}), [goalId]: value };
     const completed = Object.values(goals).filter(Boolean).length;
-    const percent = Math.round((completed / 7) * 100);
+    const percent = Math.round((completed / GOALS.length) * 100);
     const update = { goals, completionPercent: percent };
     setDay((d) => ({ ...d, ...update }));
     await ensureDoc();
