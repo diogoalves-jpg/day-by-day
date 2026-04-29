@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, X, Check, ImageIcon } from 'lucide-react';
+import { X, Check, ImageIcon } from 'lucide-react';
 import { GOALS, getGreeting, toDateStr, formatDisplayDate } from '../lib/goals';
 import { useDay } from '../hooks/useDay';
 import { useSettings } from '../hooks/useSettings';
@@ -43,14 +43,43 @@ function SectionLabel({ children }) {
   );
 }
 
+// Which goals have a running counter and what their units are
+const COUNTER_GOALS = {
+  water:   { unit: 'ml',   logKey: 'waterLog',   placeholder: 'How many ml?' },
+  protein: { unit: 'g',    logKey: 'proteinLog',  placeholder: 'How many grams?' },
+  kcals:   { unit: 'kcal', logKey: 'kcalsLog',    placeholder: 'How many kcal?' },
+};
+
 export default function Today() {
   const today = toDateStr();
-  const { day, loading, updateGoal, updateJournal, updateMood, addPhoto, removePhoto } = useDay(today);
+  const { day, loading, updateGoal, updateJournal, updateMood, addLog, removeLog, addPhoto, removePhoto } = useDay(today);
   const { descriptions } = useSettings();
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
+
+  // Counter state
+  const [addingFor, setAddingFor]   = useState(null); // goalId whose add-input is open
+  const [addInput, setAddInput]     = useState('');
+  const [logOpenFor, setLogOpenFor] = useState(null); // goalId whose entry list is shown
+
+  const openAdd = (goalId) => {
+    setAddingFor(goalId);
+    setAddInput('');
+    setLogOpenFor(null);
+  };
+  const closeAdd = () => { setAddingFor(null); setAddInput(''); };
+
+  const confirmAdd = async (goalId) => {
+    const val = parseInt(addInput, 10);
+    if (!val || val <= 0) return;
+    await addLog(goalId, val);
+    closeAdd();
+  };
+
+  const toggleLog = (goalId) =>
+    setLogOpenFor(prev => (prev === goalId ? null : goalId));
 
   const goals = day?.goals || {};
   const completedCount = Object.values(goals).filter(Boolean).length;
@@ -157,48 +186,157 @@ export default function Today() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {GOALS.map((goal) => {
             const done = !!goals[goal.id];
+            const cfg = COUNTER_GOALS[goal.id];
+            const log = cfg ? (day?.[cfg.logKey] || []) : [];
+            const total = log.reduce((s, e) => s + e.amount, 0);
+            const hasCounter = !!cfg;
+            const isAdding = addingFor === goal.id;
+            const isLogOpen = logOpenFor === goal.id;
+
+            // Bottom radius: flat when counter panel is visible
+            const btnRadius = hasCounter ? '18px 18px 0 0' : '18px';
+            const cardOutline = done ? `1px solid ${C.greenBorder}` : `1px solid ${C.border}`;
+
             return (
-              <button key={goal.id} onClick={() => updateGoal(goal.id, !done)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 16px', borderRadius: 18, border: 'none', cursor: 'pointer',
-                  background: done ? C.greenLight : C.card,
-                  boxShadow: done ? 'none' : C.shadow,
-                  outline: done ? `1px solid ${C.greenBorder}` : `1px solid ${C.border}`,
-                  transition: 'all 0.2s',
-                  textAlign: 'left',
-                }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: 14, flexShrink: 0,
-                  background: done ? 'rgba(74,124,89,0.15)' : '#F5F0EB',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: done ? 0 : 20, transition: 'all 0.2s',
-                }}>
-                  {done
-                    ? <Check size={20} color={C.green} strokeWidth={2.5} />
-                    : goal.emoji}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontSize: 15, fontWeight: 600, lineHeight: 1.2,
-                    color: done ? C.green : C.text,
-                    textDecoration: done ? 'line-through' : 'none',
-                    opacity: done ? 0.75 : 1,
-                  }}>{goal.label}</p>
-                  <p style={{ fontSize: 12, color: C.muted, marginTop: 2, overflow: 'hidden',
-                               textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {descriptions[goal.id]}
-                  </p>
-                </div>
-                <div style={{
-                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                  border: done ? 'none' : '2px solid #DDD8D3',
-                  background: done ? C.green : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {done && <Check size={13} color="#fff" strokeWidth={3} />}
-                </div>
-              </button>
+              <div key={goal.id}>
+                {/* Goal toggle button */}
+                <button onClick={() => updateGoal(goal.id, !done)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 16px', borderRadius: btnRadius, border: 'none', cursor: 'pointer',
+                    background: done ? C.greenLight : C.card,
+                    boxShadow: done ? 'none' : C.shadow,
+                    outline: cardOutline,
+                    transition: 'all 0.2s', textAlign: 'left',
+                  }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 14, flexShrink: 0,
+                    background: done ? 'rgba(74,124,89,0.15)' : '#F5F0EB',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: done ? 0 : 20, transition: 'all 0.2s',
+                  }}>
+                    {done ? <Check size={20} color={C.green} strokeWidth={2.5} /> : goal.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: 15, fontWeight: 600, lineHeight: 1.2,
+                      color: done ? C.green : C.text,
+                      textDecoration: done ? 'line-through' : 'none',
+                      opacity: done ? 0.75 : 1,
+                    }}>{goal.label}</p>
+                    <p style={{ fontSize: 12, color: C.muted, marginTop: 2, overflow: 'hidden',
+                                 textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {descriptions[goal.id]}
+                    </p>
+                  </div>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                    border: done ? 'none' : '2px solid #DDD8D3',
+                    background: done ? C.green : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {done && <Check size={13} color="#fff" strokeWidth={3} />}
+                  </div>
+                </button>
+
+                {/* Counter panel — only for water / protein / kcals */}
+                {hasCounter && (
+                  <div style={{
+                    background: done ? 'rgba(74,124,89,0.06)' : '#F9F6F3',
+                    borderRadius: '0 0 18px 18px',
+                    outline: cardOutline,
+                    outlineOffset: -1,
+                    padding: '10px 16px 12px',
+                    boxShadow: done ? 'none' : C.shadow,
+                  }}>
+                    {/* Total row */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: done ? C.green : C.text }}>
+                        {total.toLocaleString()}
+                        <span style={{ fontSize: 12, fontWeight: 500, color: C.muted, marginLeft: 4 }}>{cfg.unit}</span>
+                      </span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {/* − shows / hides entries list */}
+                        <button
+                          onClick={() => { closeAdd(); toggleLog(goal.id); }}
+                          style={{
+                            width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+                            background: isLogOpen ? '#E8756A22' : '#E8E2DC',
+                            color: isLogOpen ? '#E8756A' : C.muted,
+                            fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>−</button>
+                        {/* + opens add input */}
+                        <button
+                          onClick={() => isAdding ? closeAdd() : openAdd(goal.id)}
+                          style={{
+                            width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+                            background: isAdding ? C.green + '33' : C.green,
+                            color: '#fff',
+                            fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: isAdding ? 'none' : '0 2px 8px rgba(74,124,89,0.3)',
+                          }}>+</button>
+                      </div>
+                    </div>
+
+                    {/* Inline add input */}
+                    {isAdding && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+                        <input
+                          autoFocus
+                          type="number"
+                          inputMode="numeric"
+                          value={addInput}
+                          onChange={e => setAddInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') confirmAdd(goal.id); if (e.key === 'Escape') closeAdd(); }}
+                          placeholder={cfg.placeholder}
+                          style={{
+                            flex: 1, background: '#fff', border: `1px solid ${C.border}`,
+                            borderRadius: 10, padding: '8px 12px', fontSize: 15,
+                            outline: 'none', fontFamily: 'inherit', color: C.text,
+                          }}
+                        />
+                        <button onClick={() => confirmAdd(goal.id)} style={{
+                          width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+                          background: C.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={closeAdd} style={{
+                          width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+                          background: '#E8E2DC', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <X size={15} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Entry chips for removal */}
+                    {isLogOpen && (
+                      <div style={{ marginTop: 10 }}>
+                        {log.length === 0 ? (
+                          <p style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No entries yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {log.map(e => (
+                              <div key={e.id} style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                background: '#fff', border: `1px solid ${C.border}`,
+                                borderRadius: 8, padding: '4px 8px 4px 10px', fontSize: 13, fontWeight: 600,
+                              }}>
+                                {e.amount.toLocaleString()}{cfg.unit}
+                                <button onClick={() => removeLog(goal.id, e.id)} style={{
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  color: '#E8756A', padding: 0, lineHeight: 1, fontSize: 16, fontWeight: 700,
+                                }}>×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

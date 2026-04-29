@@ -65,6 +65,24 @@ export function useDay(dateStr) {
     await updateDoc(docRef, { mood });
   };
 
+  // Generic log helpers for water / protein / kcals
+  // Each log is stored as an array on the day doc: waterLog, proteinLog, kcalsLog
+  const addLog = async (goalId, amount) => {
+    const key = `${goalId}Log`;
+    const entry = { id: String(Date.now()), amount: Number(amount) };
+    const newLog = [...(day?.[key] || []), entry];
+    setDay((d) => ({ ...d, [key]: newLog }));
+    await ensureDoc();
+    await updateDoc(docRef, { [key]: newLog });
+  };
+
+  const removeLog = async (goalId, entryId) => {
+    const key = `${goalId}Log`;
+    const newLog = (day?.[key] || []).filter((e) => e.id !== entryId);
+    setDay((d) => ({ ...d, [key]: newLog }));
+    await updateDoc(docRef, { [key]: newLog });
+  };
+
   const addPhoto = async (base64, timestamp = Date.now()) => {
     await ensureDoc();
     const newDoc = await addDoc(photosCol, { base64, timestamp });
@@ -82,5 +100,5 @@ export function useDay(dateStr) {
     await updateDoc(docRef, { photoCount: newPhotos.length });
   };
 
-  return { day, loading, updateGoal, updateJournal, updateMood, addPhoto, removePhoto };
+  return { day, loading, updateGoal, updateJournal, updateMood, addLog, removeLog, addPhoto, removePhoto };
 }
