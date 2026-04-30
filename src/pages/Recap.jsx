@@ -154,7 +154,7 @@ export default function Recap() {
   };
 
   const selectStyle = {
-    width: '100%', background: '#F5F0EB', border: `1px solid ${C.border}`,
+    width: '100%', background: '#EBF2FA', border: `1px solid ${C.border}`,
     borderRadius: 16, padding: '13px 14px', fontSize: 15, fontFamily: 'inherit',
     outline: 'none', color: C.text, appearance: 'none', WebkitAppearance: 'none',
     fontWeight: 500,
@@ -243,7 +243,7 @@ export default function Recap() {
 
             {/* Trend arrow */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44,
-              borderRadius:'50%', background:'#F5F0EB' }}>
+              borderRadius:'50%', background:'#EBF2FA' }}>
               {same ? (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M5 12h14M12 5l7 7-7 7" stroke={C.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

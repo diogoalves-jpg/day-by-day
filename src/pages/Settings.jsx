@@ -32,7 +32,7 @@ export default function Settings() {
   const initials = user?.displayName?.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)||'?';
 
   const inputStyle = {
-    width: '100%', background: '#F5F0EB', border: `1px solid ${C.border}`,
+    width: '100%', background: '#EBF2FA', border: `1px solid ${C.border}`,
     borderRadius: 12, padding: '11px 14px', fontSize: 14, outline: 'none',
     fontFamily: 'inherit', color: C.text, transition: 'border-color 0.2s',
   };

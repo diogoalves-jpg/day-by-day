@@ -10,7 +10,7 @@ const navItems = [
 
 export default function Layout() {
   return (
-    <div style={{ background: '#F2EDE8', minHeight: '100dvh' }}>
+    <div style={{ background: '#E8F0FA', minHeight: '100dvh' }}>
       <div style={{
         maxWidth: 480,
         margin: '0 auto',

@@ -14,7 +14,7 @@ const MOODS = [
 ];
 
 const C = {
-  bg: '#F2EDE8',
+  bg: '#E8F0FA',
   card: '#FFFFFF',
   green: '#4A7C59',
   greenLight: 'rgba(74,124,89,0.1)',
@@ -211,7 +211,7 @@ export default function Today() {
                   }}>
                   <div style={{
                     width: 42, height: 42, borderRadius: 14, flexShrink: 0,
-                    background: done ? 'rgba(74,124,89,0.15)' : '#F5F0EB',
+                    background: done ? 'rgba(74,124,89,0.15)' : '#EBF2FA',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: done ? 0 : 20, transition: 'all 0.2s',
                   }}>
@@ -242,7 +242,7 @@ export default function Today() {
                 {/* Counter panel — only for water / protein / kcals */}
                 {hasCounter && (
                   <div style={{
-                    background: done ? 'rgba(74,124,89,0.06)' : '#F9F6F3',
+                    background: done ? 'rgba(74,124,89,0.06)' : '#EEF4FB',
                     borderRadius: '0 0 18px 18px',
                     outline: cardOutline,
                     outlineOffset: -1,
@@ -261,7 +261,7 @@ export default function Today() {
                           onClick={() => { closeAdd(); toggleLog(goal.id); }}
                           style={{
                             width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
-                            background: isLogOpen ? '#E8756A22' : '#E8E2DC',
+                            background: isLogOpen ? '#E8756A22' : '#DCE8F2',
                             color: isLogOpen ? '#E8756A' : C.muted,
                             fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>−</button>
@@ -303,7 +303,7 @@ export default function Today() {
                         </button>
                         <button onClick={closeAdd} style={{
                           width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
-                          background: '#E8E2DC', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: '#DCE8F2', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                           <X size={15} />
                         </button>

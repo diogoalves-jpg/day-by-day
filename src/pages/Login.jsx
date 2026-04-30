@@ -21,7 +21,7 @@ export default function Login() {
     <div style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #F2EDE8 0%, #E8E0D8 100%)',
+      background: 'linear-gradient(160deg, #E8F0FA 0%, #D8E8F5 100%)',
       padding: '32px 24px',
       paddingTop: 'calc(32px + env(safe-area-inset-top))',
       paddingBottom: 'calc(32px + env(safe-area-inset-bottom))',

@@ -12,7 +12,7 @@ function ProtectedRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F0EB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#E8F0FA]">
         <div className="text-[#888880] text-sm">Loading…</div>
       </div>
     );

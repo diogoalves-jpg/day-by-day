@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toDateStr, GOALS } from '../lib/goals';
 
 const C = {
-  bg: '#F2EDE8', card: '#FFFFFF', green: '#4A7C59',
+  bg: '#E8F0FA', card: '#FFFFFF', green: '#4A7C59',
   border: 'rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)',
   muted: '#9C9490', text: '#1A1A1A',
 };
@@ -89,7 +89,7 @@ function DayDetailSheet({ dateStr, onClose, allDays }) {
                 <span style={{ fontSize: 15, fontWeight: 600 }}>{pct}% completed</span>
               </div>
             </div>
-            <button onClick={onClose} style={{ background: '#F2EDE8', border: 'none', borderRadius: '50%',
+            <button onClick={onClose} style={{ background: '#E8F0FA', border: 'none', borderRadius: '50%',
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <X size={16} color={C.muted} />
             </button>
@@ -133,7 +133,7 @@ function DayDetailSheet({ dateStr, onClose, allDays }) {
           {data?.journal ? (
             <div style={{ marginBottom: 20 }}>
               <SectionLabel>Journal</SectionLabel>
-              <div style={{ background: '#F9F6F3', borderRadius: 16, padding: '14px 16px' }}>
+              <div style={{ background: '#EEF4FB', borderRadius: 16, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <BookOpen size={16} color={C.muted} style={{ flexShrink: 0, marginTop: 2 }} />
                   <p style={{ fontSize: 14, lineHeight: 1.7, color: C.text }}>{data.journal}</p>
@@ -348,7 +348,7 @@ export default function Calendar() {
                       value={editingText}
                       onChange={e => setEditingText(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') commitEdit(g.id); if (e.key === 'Escape') setEditingId(null); }}
-                      style={{ flex: 1, background: '#F5F0EB', border: 'none', borderRadius: 10,
+                      style={{ flex: 1, background: '#EBF2FA', border: 'none', borderRadius: 10,
                         padding: '6px 10px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }}
                     />
                     <button onClick={() => commitEdit(g.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.green }}>
@@ -376,7 +376,7 @@ export default function Calendar() {
               <input value={newGoal} onChange={e=>setNewGoal(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addWeekGoal()}
                 placeholder="Add a goal for this week…"
-                style={{ flex: 1, background: '#F5F0EB', border: 'none', borderRadius: 12, padding: '10px 14px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
+                style={{ flex: 1, background: '#EBF2FA', border: 'none', borderRadius: 12, padding: '10px 14px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
               <button onClick={addWeekGoal} style={{
                 width: 38, height: 38, borderRadius: 12, background: C.green,
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
